@@ -1,5 +1,8 @@
 package io.vertx.test.redis;
 
+import java.util.concurrent.CompletableFuture;
+
+import io.vertx.core.Future;
 import io.vertx.core.VertxOptions;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
@@ -72,6 +75,40 @@ public class RedisPubSubTest {
   public void after(TestContext should) {
     redisPublish.close();
     redisSubscribe.close();
+  }
+
+  @Test
+  public void testSingleSubscribeUnsubscribe(TestContext should) {
+    String CHAN = "sub-unsub";
+
+    // 1. Notify about subscribe;
+    // 2. Receive the published message;
+    // 3. Notify about unsubscribe.
+    Async test = should.async(3);
+    subConn.handler(msg -> {
+      System.out.println("received msg " + msg);
+      test.countDown();
+    });
+
+    CompletableFuture<Void> cs = new CompletableFuture<>();
+
+    // Need to wai a bit for receiving the remaining messages on handler.
+    rule.vertx().setTimer(1000, id -> {
+      try {
+        test.complete();
+        cs.complete(null);
+      } catch (Throwable t) {
+        cs.completeExceptionally(t);
+      }
+    });
+
+    subConn.send(Request.cmd(Command.SUBSCRIBE).arg(CHAN))
+      .compose(ignore -> pubConn.send(Request.cmd(Command.PUBLISH).arg(CHAN).arg("hello")))
+      .onComplete(req -> should.assertTrue(req.succeeded()))
+      .compose(ignore -> subConn.send(Request.cmd(Command.UNSUBSCRIBE).arg(CHAN)))
+      .onComplete(req -> should.assertTrue(req.succeeded()))
+      .compose(ignore -> Future.fromCompletionStage(cs))
+      .onComplete(should.asyncAssertSuccess());
   }
 
   @Test
