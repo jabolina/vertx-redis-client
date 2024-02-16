@@ -26,6 +26,8 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.redis.client.*;
 import io.vertx.redis.client.impl.PooledRedisConnection;
 import io.vertx.redis.client.impl.RedisStandaloneConnection;
+import io.vertx.redis.harness.RespServerRuleBuilder;
+
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.testcontainers.containers.GenericContainer;
@@ -45,8 +47,11 @@ public class RedisClientTest {
   public final RunTestOnContext rule = new RunTestOnContext();
 
   @ClassRule
-  public static final GenericContainer<?> container = new GenericContainer<>("redis:6.0.6")
-    .withExposedPorts(6379);
+  public static final GenericContainer<?> container = RespServerRuleBuilder.builder()
+    .withContainerImage("redis:6.0.6")
+    .withExposedPorts(6379)
+    .readEnvironment()
+    .build();
 
   private Redis client;
   private RedisAPI redis;
