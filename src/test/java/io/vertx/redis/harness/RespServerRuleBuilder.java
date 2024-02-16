@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
-import java.util.function.Supplier;
 
 import org.testcontainers.containers.GenericContainer;
 
@@ -21,7 +20,7 @@ public final class RespServerRuleBuilder {
   private final List<Integer> ports = new ArrayList<>(1);
   private final Map<String, String> parameters = new HashMap<>();
   private String image;
-  private Supplier<GenericContainer<?>> builder = null;
+  private RespServerRule hijack = null;
 
   public static RespServerRuleBuilder builder() {
     return new RespServerRuleBuilder();
@@ -40,8 +39,8 @@ public final class RespServerRuleBuilder {
   public RespServerRuleBuilder readEnvironment() {
     Properties properties = System.getProperties();
     Object o = properties.get(CONTAINER_BUILD_OVERRIDE_PROPERTY);
-    if (o instanceof Supplier) {
-      builder = (Supplier<GenericContainer<?>>) o;
+    if (o instanceof RespServerRule) {
+      hijack = (RespServerRule) o;
     }
 
     Integer[] ports = Arrays.stream(System.getProperty(CONTAINER_EXPOSE_PORTS_PROPERTY, "").split(","))
@@ -70,18 +69,38 @@ public final class RespServerRuleBuilder {
     });
 
     parameters.putAll(env);
-
-
     return this;
   }
 
-  public GenericContainer<?> build() {
-    if (builder != null) {
-      return builder.get();
+  public RespServerRule build() {
+    if (hijack != null) {
+      return hijack;
     }
 
-    return new GenericContainer<>(image)
+    return new RespServerRuleImpl(image)
       .withEnv(parameters)
       .withExposedPorts(ports.toArray(new Integer[0]));
+  }
+
+  private static class RespServerRuleImpl extends GenericContainer<RespServerRuleImpl> implements RespServerRule {
+
+    public RespServerRuleImpl(String image) {
+      super(image);
+    }
+
+    @Override
+    public Integer getFirstMappedPort() {
+      return super.getFirstMappedPort();
+    }
+
+    @Override
+    public String getHost() {
+      return super.getHost();
+    }
+
+    @Override
+    public GenericContainer<?> get() {
+      return this;
+    }
   }
 }

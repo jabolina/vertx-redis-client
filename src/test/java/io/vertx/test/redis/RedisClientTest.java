@@ -26,11 +26,11 @@ import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.redis.client.*;
 import io.vertx.redis.client.impl.PooledRedisConnection;
 import io.vertx.redis.client.impl.RedisStandaloneConnection;
+import io.vertx.redis.harness.RespServerRule;
 import io.vertx.redis.harness.RespServerRuleBuilder;
 
 import org.junit.*;
 import org.junit.runner.RunWith;
-import org.testcontainers.containers.GenericContainer;
 
 import java.lang.reflect.Field;
 import java.util.*;
@@ -47,7 +47,7 @@ public class RedisClientTest {
   public final RunTestOnContext rule = new RunTestOnContext();
 
   @ClassRule
-  public static final GenericContainer<?> container = RespServerRuleBuilder.builder()
+  public static final RespServerRule container = RespServerRuleBuilder.builder()
     .withContainerImage("redis:6.0.6")
     .withExposedPorts(6379)
     .readEnvironment()
@@ -221,6 +221,7 @@ public class RedisClientTest {
 
     redis.set(toList(key, "foobar"))
       .compose(reply0 -> redis.bitcount(toList(key)))
+      .onFailure(should::fail)
       .compose(reply1 -> {
         should.assertEquals(26L, reply1.toLong());
         return redis.bitcount(toList(key, "0", "0"));
@@ -381,7 +382,7 @@ public class RedisClientTest {
       .compose(reply -> redis.config(toList("GET", "dbfilename")))
       .onComplete(should.asyncAssertSuccess(reply2 -> {
         should.assertNotNull(reply2.get("dbfilename"));
-        should.assertTrue(reply2.get("dbfilename").toString().equals("redis.dump"));
+        should.assertEquals("redis.dump", reply2.get("dbfilename"));
         test.complete();
       }));
   }

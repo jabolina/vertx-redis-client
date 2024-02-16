@@ -6,6 +6,9 @@ import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.RunTestOnContext;
 import io.vertx.ext.unit.junit.VertxUnitRunner;
 import io.vertx.redis.client.*;
+import io.vertx.redis.harness.RespServerRule;
+import io.vertx.redis.harness.RespServerRuleBuilder;
+
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.testcontainers.containers.GenericContainer;
@@ -17,8 +20,11 @@ public class RedisReconnectTest {
   public final RunTestOnContext rule = new RunTestOnContext();
 
   @ClassRule
-  public static final GenericContainer<?> container = new GenericContainer<>("redis:6.0.6")
-    .withExposedPorts(6379);
+  public static final RespServerRule container = RespServerRuleBuilder.builder()
+    .withContainerImage("redis:6.0.6")
+    .withExposedPorts(6379)
+    .readEnvironment()
+    .build();
 
   private Redis client;
 

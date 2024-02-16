@@ -9,9 +9,11 @@ import io.vertx.redis.client.Redis;
 import io.vertx.redis.client.RedisOptions;
 import io.vertx.redis.client.Response;
 import io.vertx.redis.client.impl.types.ErrorType;
+import io.vertx.redis.harness.RespServerRule;
+import io.vertx.redis.harness.RespServerRuleBuilder;
+
 import org.junit.*;
 import org.junit.runner.RunWith;
-import org.testcontainers.containers.GenericContainer;
 
 import java.util.UUID;
 
@@ -25,8 +27,11 @@ public class RedisClient6Test {
   public final RunTestOnContext rule = new RunTestOnContext();
 
   @ClassRule
-  public static final GenericContainer<?> redis = new GenericContainer<>("redis:6.2.1")
-    .withExposedPorts(6379);
+  public static final RespServerRule redis = RespServerRuleBuilder.builder()
+    .withContainerImage("redis:6.2.1")
+    .withExposedPorts(6379)
+    .readEnvironment()
+    .build();
 
   private Redis client;
 
